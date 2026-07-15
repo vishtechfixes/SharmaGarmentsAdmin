@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8"/>
+<title>Sharma Garments — Menu Seed</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:system-ui,sans-serif;background:#0d1033;color:#e2e8f0;min-height:100vh;padding:24px 16px}
+  .wrap{max-width:680px;margin:0 auto}
+  h1{font-size:20px;font-weight:800;color:#FFD700;margin-bottom:4px}
+  .sub{font-size:13px;color:#64748b;margin-bottom:20px}
+  .card{background:#1a2060;border:1px solid #2a3870;border-radius:14px;padding:18px;margin-bottom:14px}
+  .card h3{font-size:13px;font-weight:700;color:#FFD700;margin-bottom:10px;display:flex;align-items:center;gap:6px}
+  .item-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid #1a2860;font-size:13px}
+  .item-row:last-child{border-bottom:none}
+  .item-name{color:#e2e8f0;display:flex;align-items:center;gap:6px}
+  .item-price{color:#FFD700;font-weight:700;font-size:12px}
+  .item-size{color:#64748b;font-size:11px;margin-left:4px}
+  .inp{width:100%;padding:12px 14px;background:#0d1033;border:1.5px solid #2a3870;border-radius:8px;color:#e2e8f0;font-size:14px;outline:none;margin-bottom:10px}
+  .inp:focus{border-color:#FFD700}
+  .btn{width:100%;padding:14px;background:linear-gradient(135deg,#1a237e,#0d1560);border:2px solid #FFD700;color:#FFD700;font-size:15px;font-weight:800;border-radius:10px;cursor:pointer;margin-bottom:12px}
+  .btn:disabled{opacity:.5;cursor:not-allowed}
+  .err{color:#ef4444;background:rgba(239,68,68,.1);border-radius:8px;padding:10px 12px;font-size:13px;margin-top:8px;display:none}
+  .ok{color:#22c55e;background:rgba(34,197,94,.1);border-radius:8px;padding:10px 12px;font-size:13px;margin-top:8px;display:none}
+  .log{background:#0d1033;border:1px solid #2a3870;border-radius:10px;padding:14px;font-size:12px;font-family:monospace;max-height:280px;overflow-y:auto;margin-top:12px;display:none}
+  .l-ok{color:#22c55e;margin-bottom:2px}
+  .l-err{color:#ef4444;margin-bottom:2px}
+  .l-inf{color:#94a3b8;margin-bottom:2px}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
+  .stat{background:#1a2060;border:1px solid #2a3870;border-radius:8px;padding:12px;text-align:center}
+  .stat-n{font-size:24px;font-weight:800;color:#FFD700}
+  .stat-l{font-size:11px;color:#64748b}
+  #seed-section{display:none}
+  .done{background:#052e16;border:1px solid #16a34a;border-radius:12px;padding:16px;text-align:center;display:none;margin-top:12px}
+  .done h2{color:#22c55e;margin-bottom:6px}
+  .done p{color:#86efac;font-size:13px}
+  .user-info{display:none;background:#052e16;border:1px solid #16a34a;border-radius:8px;padding:10px 14px;font-size:13px;color:#86efac;margin-bottom:16px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>👗 Sharma Garments — Menu Seed</h1>
+  <p class="sub">Demo menu — saari categories cover hain. Login karke add karo.</p>
+
+  <!-- LOGIN -->
+  <div class="card" id="login-section">
+    <h3>🔐 Admin Login</h3>
+    <input class="inp" type="email" id="email" value="vishtechsoftwareservices@gmail.com"/>
+    <input class="inp" type="password" id="password" placeholder="Password (sg2025)"/>
+    <button class="btn" onclick="doLogin()">Login Karo</button>
+    <div class="err" id="login-err"></div>
+    <div class="ok"  id="login-ok"></div>
+  </div>
+
+  <!-- SEED -->
+  <div id="seed-section">
+    <div class="user-info" id="user-info"></div>
+    <div class="stats">
+      <div class="stat"><div class="stat-n" id="total-n">0</div><div class="stat-l">Total Items</div></div>
+      <div class="stat"><div class="stat-n" id="cat-n">0</div><div class="stat-l">Categories</div></div>
+      <div class="stat"><div class="stat-n" id="done-count">0</div><div class="stat-l">Added</div></div>
+    </div>
+    <button class="btn" id="seed-btn" onclick="startSeed()">
+      👗 Poora Demo Menu Add Karo
+    </button>
+    <div id="preview"></div>
+    <div class="log" id="log"></div>
+    <div class="done" id="done-banner">
+      <h2>✅ Demo Menu Add Ho Gaya!</h2>
+      <p>Saare items Firebase mein save ho gaye.<br/>Admin Panel → Menu mein dekho.</p>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp, getApps, getApp }
+  from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import {
+  getFirestore, collection, doc, setDoc, getDocs, deleteDoc
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import {
+  getAuth, signInWithEmailAndPassword
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+const CFG = {
+  apiKey:            "AIzaSyBMOK1OZIFNcIIKNP4QNB2DCy_XYO5kh8Q",
+  authDomain:        "sharma-garments.firebaseapp.com",
+  projectId:         "sharma-garments",
+  storageBucket:     "sharma-garments.firebasestorage.app",
+  messagingSenderId: "46124208935",
+  appId:             "1:46124208935:web:886af763a1a3b4c3824f02"
+};
+const app  = getApps().length ? getApp() : initializeApp(CFG);
+const db   = getFirestore(app);
+const auth = getAuth(app);
+
+// ── DEMO MENU — Comprehensive Kapda Shop ──────────────────
+const MENU = [
+
+  // ── MEN'S WEAR ──
+  {name:"White Cotton Shirt",         cat:"Men's Wear",   emoji:"👕", price:499,  size:"S/M/L/XL"},
+  {name:"Blue Formal Shirt",          cat:"Men's Wear",   emoji:"👔", price:599,  size:"S/M/L/XL"},
+  {name:"Black Formal Shirt",         cat:"Men's Wear",   emoji:"👔", price:599,  size:"S/M/L/XL"},
+  {name:"Printed Casual Shirt",       cat:"Men's Wear",   emoji:"👕", price:449,  size:"S/M/L/XL"},
+  {name:"Cotton Kurta - White",       cat:"Men's Wear",   emoji:"👘", price:549,  size:"S/M/L/XL/XXL"},
+  {name:"Cotton Kurta - Blue",        cat:"Men's Wear",   emoji:"👘", price:549,  size:"S/M/L/XL/XXL"},
+  {name:"Pathani Suit",               cat:"Men's Wear",   emoji:"🥻", price:899,  size:"S/M/L/XL"},
+  {name:"Denim Jeans - Blue",         cat:"Men's Wear",   emoji:"👖", price:799,  size:"28-38"},
+  {name:"Denim Jeans - Black",        cat:"Men's Wear",   emoji:"👖", price:799,  size:"28-38"},
+  {name:"Cotton Track Pant",          cat:"Men's Wear",   emoji:"👖", price:349,  size:"S/M/L/XL"},
+  {name:"Men's T-Shirt - Plain",      cat:"Men's Wear",   emoji:"👕", price:299,  size:"S/M/L/XL"},
+  {name:"Men's T-Shirt - Printed",    cat:"Men's Wear",   emoji:"👕", price:349,  size:"S/M/L/XL"},
+  {name:"Blazer - Black",             cat:"Men's Wear",   emoji:"🥼", price:1499, size:"S/M/L/XL"},
+  {name:"Sherwani",                   cat:"Men's Wear",   emoji:"🎩", price:3999, size:"S/M/L/XL"},
+
+  // ── WOMEN'S WEAR ──
+  {name:"Cotton Kurti - Printed",     cat:"Women's Wear", emoji:"👗", price:449,  size:"S/M/L/XL/XXL"},
+  {name:"Cotton Kurti - Plain",       cat:"Women's Wear", emoji:"👗", price:399,  size:"S/M/L/XL/XXL"},
+  {name:"Silk Kurti",                 cat:"Women's Wear", emoji:"👗", price:699,  size:"S/M/L/XL"},
+  {name:"Anarkali Dress",             cat:"Women's Wear", emoji:"👗", price:999,  size:"S/M/L/XL"},
+  {name:"Palazzo Set",                cat:"Women's Wear", emoji:"👘", price:699,  size:"S/M/L/XL"},
+  {name:"Rayon Kurti",                cat:"Women's Wear", emoji:"👗", price:499,  size:"S/M/L/XL/XXL"},
+  {name:"Night Suit",                 cat:"Women's Wear", emoji:"🛌", price:549,  size:"S/M/L/XL"},
+  {name:"Western Top",                cat:"Women's Wear", emoji:"👚", price:399,  size:"S/M/L/XL"},
+  {name:"Denim Jeans - Women",        cat:"Women's Wear", emoji:"👖", price:699,  size:"26-36"},
+  {name:"Leggings - Cotton",          cat:"Women's Wear", emoji:"🩱", price:199,  size:"Free Size"},
+  {name:"Churidar",                   cat:"Women's Wear", emoji:"👘", price:299,  size:"S/M/L/XL"},
+  {name:"Dupatta - Chiffon",          cat:"Women's Wear", emoji:"🧣", price:199,  size:"Free Size"},
+
+  // ── KIDS WEAR ──
+  {name:"Kids T-Shirt - Boys",        cat:"Kids Wear",    emoji:"👦", price:199,  size:"2-14 years"},
+  {name:"Kids T-Shirt - Girls",       cat:"Kids Wear",    emoji:"👧", price:199,  size:"2-14 years"},
+  {name:"Kids Frock",                 cat:"Kids Wear",    emoji:"👗", price:299,  size:"2-12 years"},
+  {name:"Kids Jeans",                 cat:"Kids Wear",    emoji:"👖", price:349,  size:"2-14 years"},
+  {name:"Kids Kurta Pajama",          cat:"Kids Wear",    emoji:"👘", price:449,  size:"2-14 years"},
+  {name:"School Uniform - Shirt",     cat:"Kids Wear",    emoji:"👕", price:249,  size:"2-16 years"},
+  {name:"School Uniform - Pant",      cat:"Kids Wear",    emoji:"👖", price:299,  size:"2-16 years"},
+  {name:"Kids Party Dress",           cat:"Kids Wear",    emoji:"🎀", price:599,  size:"2-12 years"},
+  {name:"Baby Romper Set",            cat:"Kids Wear",    emoji:"🍼", price:249,  size:"0-2 years"},
+  {name:"Kids Track Suit",            cat:"Kids Wear",    emoji:"🏃", price:399,  size:"2-14 years"},
+
+  // ── ETHNIC WEAR ──
+  {name:"Sherwani Set - Full",        cat:"Ethnic Wear",  emoji:"🎩", price:4999, size:"S/M/L/XL"},
+  {name:"Nehru Jacket",               cat:"Ethnic Wear",  emoji:"🥼", price:1299, size:"S/M/L/XL"},
+  {name:"Kurta Pajama - Silk",        cat:"Ethnic Wear",  emoji:"👘", price:1499, size:"S/M/L/XL"},
+  {name:"Dhoti Kurta Set",            cat:"Ethnic Wear",  emoji:"🥻", price:999,  size:"S/M/L/XL"},
+  {name:"Bandhgala Suit",             cat:"Ethnic Wear",  emoji:"🎽", price:2999, size:"S/M/L/XL"},
+  {name:"Indo-Western Kurta",         cat:"Ethnic Wear",  emoji:"👘", price:1999, size:"S/M/L/XL"},
+
+  // ── SAREES ──
+  {name:"Cotton Saree - Plain",       cat:"Sarees",       emoji:"🥻", price:599,  size:"Free Size"},
+  {name:"Cotton Saree - Printed",     cat:"Sarees",       emoji:"🥻", price:699,  size:"Free Size"},
+  {name:"Silk Saree",                 cat:"Sarees",       emoji:"🥻", price:1999, size:"Free Size"},
+  {name:"Chiffon Saree",              cat:"Sarees",       emoji:"🥻", price:899,  size:"Free Size"},
+  {name:"Georgette Saree",            cat:"Sarees",       emoji:"🥻", price:999,  size:"Free Size"},
+  {name:"Banarasi Saree",             cat:"Sarees",       emoji:"🥻", price:3999, size:"Free Size"},
+  {name:"Kanjeevaram Saree",          cat:"Sarees",       emoji:"🥻", price:4999, size:"Free Size"},
+  {name:"Daily Wear Saree",           cat:"Sarees",       emoji:"🥻", price:449,  size:"Free Size"},
+
+  // ── SUITS & SALWAR ──
+  {name:"Cotton Salwar Suit",         cat:"Suits & Salwar",emoji:"👗", price:799, size:"S/M/L/XL/XXL"},
+  {name:"Embroidered Salwar Suit",    cat:"Suits & Salwar",emoji:"👗", price:1299,size:"S/M/L/XL"},
+  {name:"Patiala Salwar Set",         cat:"Suits & Salwar",emoji:"👘", price:899, size:"Free Size"},
+  {name:"Punjabi Suit - Cotton",      cat:"Suits & Salwar",emoji:"👗", price:999, size:"S/M/L/XL"},
+  {name:"Punjabi Suit - Silk",        cat:"Suits & Salwar",emoji:"👗", price:1599,size:"S/M/L/XL"},
+  {name:"Straight Cut Suit",          cat:"Suits & Salwar",emoji:"👗", price:1099,size:"S/M/L/XL"},
+
+  // ── LEHENGA & CHOLI ──
+  {name:"Lehenga Choli - Cotton",     cat:"Lehenga & Choli",emoji:"👗",price:1499,size:"S/M/L/XL"},
+  {name:"Lehenga Choli - Silk",       cat:"Lehenga & Choli",emoji:"👗",price:2999,size:"S/M/L/XL"},
+  {name:"Bridal Lehenga",             cat:"Lehenga & Choli",emoji:"💍",price:9999,size:"Custom"},
+  {name:"Party Wear Lehenga",         cat:"Lehenga & Choli",emoji:"🎉",price:3999,size:"S/M/L/XL"},
+  {name:"Kids Lehenga",               cat:"Lehenga & Choli",emoji:"👧",price:899, size:"2-12 years"},
+  {name:"Chaniya Choli",              cat:"Lehenga & Choli",emoji:"🎪",price:1999,size:"S/M/L/XL"},
+
+  // ── WESTERN WEAR ──
+  {name:"Formal Trousers - Men",      cat:"Western Wear",  emoji:"👖",price:799, size:"28-40"},
+  {name:"Formal Trousers - Women",    cat:"Western Wear",  emoji:"👖",price:699, size:"S/M/L/XL"},
+  {name:"Cargo Pants",                cat:"Western Wear",  emoji:"👖",price:699, size:"28-38"},
+  {name:"Shorts - Men",               cat:"Western Wear",  emoji:"🩲",price:349, size:"S/M/L/XL"},
+  {name:"Shorts - Women",             cat:"Western Wear",  emoji:"🩲",price:299, size:"S/M/L/XL"},
+  {name:"Jacket - Denim",             cat:"Western Wear",  emoji:"🧥",price:1299,size:"S/M/L/XL"},
+  {name:"Jacket - Bomber",            cat:"Western Wear",  emoji:"🧥",price:1499,size:"S/M/L/XL"},
+  {name:"Co-ord Set - Women",         cat:"Western Wear",  emoji:"👗",price:899, size:"S/M/L/XL"},
+
+  // ── WINTER COLLECTION ──
+  {name:"Sweater - Woolen Men",       cat:"Winter Collection",emoji:"🧥",price:699, size:"S/M/L/XL"},
+  {name:"Sweater - Woolen Women",     cat:"Winter Collection",emoji:"🧥",price:649, size:"S/M/L/XL"},
+  {name:"Hooded Sweatshirt",          cat:"Winter Collection",emoji:"🧥",price:799, size:"S/M/L/XL"},
+  {name:"Woolen Shawl",               cat:"Winter Collection",emoji:"🧣",price:499, size:"Free Size"},
+  {name:"Muffler",                    cat:"Winter Collection",emoji:"🧣",price:199, size:"Free Size"},
+  {name:"Woolen Cap",                 cat:"Winter Collection",emoji:"🎓",price:149, size:"Free Size"},
+  {name:"Thermal Innerwear Set",      cat:"Winter Collection",emoji:"🌡️",price:349,size:"S/M/L/XL"},
+  {name:"Blazer - Men Winter",        cat:"Winter Collection",emoji:"🥼",price:1799,size:"S/M/L/XL"},
+  {name:"Kids Sweater",               cat:"Winter Collection",emoji:"🧥",price:349, size:"2-14 years"},
+
+  // ── ACCESSORIES ──
+  {name:"Belt - Leather Men",         cat:"Accessories",   emoji:"👜",price:299, size:"Free Size"},
+  {name:"Belt - Women",               cat:"Accessories",   emoji:"👜",price:249, size:"Free Size"},
+  {name:"Handkerchief Set (6 pcs)",   cat:"Accessories",   emoji:"🧻",price:149, size:"Free Size"},
+  {name:"Socks - Men (3 pairs)",      cat:"Accessories",   emoji:"🧦",price:99,  size:"Free Size"},
+  {name:"Socks - Women (3 pairs)",    cat:"Accessories",   emoji:"🧦",price:99,  size:"Free Size"},
+  {name:"Tie - Formal",               cat:"Accessories",   emoji:"👔",price:299, size:"Free Size"},
+  {name:"Stole - Women",              cat:"Accessories",   emoji:"🧣",price:299, size:"Free Size"},
+  {name:"Hair Band Set",              cat:"Accessories",   emoji:"💄",price:99,  size:"Free Size"},
+
+  // ── SALE ITEMS ──
+  {name:"Clearance Shirt - Men",      cat:"Sale Items",    emoji:"🏷️",price:199, size:"Various"},
+  {name:"Clearance Kurti",            cat:"Sale Items",    emoji:"🏷️",price:149, size:"Various"},
+  {name:"Clearance Kids Wear",        cat:"Sale Items",    emoji:"🏷️",price:99,  size:"Various"},
+  {name:"Last Piece Saree",           cat:"Sale Items",    emoji:"🏷️",price:299, size:"Free Size"},
+  {name:"Season End Suit",            cat:"Sale Items",    emoji:"🏷️",price:499, size:"Various"},
+];
+
+const CAT_ICONS = {
+  "Men's Wear":       "👔",
+  "Women's Wear":     "👗",
+  "Kids Wear":        "👶",
+  "Ethnic Wear":      "🎩",
+  "Sarees":           "🥻",
+  "Suits & Salwar":   "👘",
+  "Lehenga & Choli":  "💍",
+  "Western Wear":     "🕴️",
+  "Winter Collection":"🧥",
+  "Accessories":      "👜",
+  "Sale Items":       "🏷️",
+};
+
+document.getElementById('total-n').textContent = MENU.length;
+
+const cats = {};
+MENU.forEach(item => {
+  if (!cats[item.cat]) cats[item.cat] = [];
+  cats[item.cat].push(item);
+});
+document.getElementById('cat-n').textContent = Object.keys(cats).length;
+
+function renderPreview() {
+  const prev = document.getElementById('preview');
+  prev.innerHTML = '';
+  Object.entries(cats).forEach(([cat, items]) => {
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML = `<h3>${CAT_ICONS[cat]||'👗'} ${cat} — ${items.length} items</h3>` +
+      items.map(it =>
+        `<div class="item-row">
+          <span class="item-name">
+            ${it.emoji} ${it.name}
+            <span class="item-size">${it.size}</span>
+          </span>
+          <span class="item-price">Rs.${it.price}</span>
+        </div>`).join('');
+    prev.appendChild(card);
+  });
+}
+
+function log(msg, type='inf') {
+  const el = document.getElementById('log');
+  el.style.display = 'block';
+  const d = document.createElement('div');
+  d.className = `l-${type}`; d.textContent = msg;
+  el.appendChild(d); el.scrollTop = el.scrollHeight;
+}
+
+window.doLogin = async function() {
+  const email = document.getElementById('email').value.trim();
+  const pass  = document.getElementById('password').value.trim();
+  const errEl = document.getElementById('login-err');
+  const okEl  = document.getElementById('login-ok');
+  errEl.style.display='none'; okEl.style.display='none';
+  if (!email || !pass) {
+    errEl.textContent='Email aur password daalo!';
+    errEl.style.display='block'; return;
+  }
+  try {
+    const cred = await signInWithEmailAndPassword(auth, email, pass);
+    okEl.textContent = `Logged in: ${cred.user.email}`;
+    okEl.style.display = 'block';
+    document.getElementById('login-section').style.display = 'none';
+    document.getElementById('seed-section').style.display  = 'block';
+    const info = document.getElementById('user-info');
+    info.textContent = `Admin: ${cred.user.email}`;
+    info.style.display = 'block';
+    renderPreview();
+  } catch(e) {
+    let msg = 'Login fail hua.';
+    if (e.code==='auth/wrong-password'||e.code==='auth/invalid-credential')
+      msg = 'Email ya password galat hai!';
+    errEl.textContent = msg; errEl.style.display = 'block';
+  }
+};
+
+window.startSeed = async function() {
+  const btn = document.getElementById('seed-btn');
+  btn.disabled = true; btn.textContent = 'Adding...';
+  try {
+    log('Purana menu clear kar raha hoon...','inf');
+    const snap = await getDocs(collection(db,'menu'));
+    for (const d of snap.docs) await deleteDoc(d.ref);
+    log(`${snap.size} purane items delete kiye`,'inf');
+
+    let done = 0;
+    for (const item of MENU) {
+      const id = item.name.toLowerCase()
+        .replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
+      await setDoc(doc(db,'menu',id), {
+        name:        item.name,
+        category:    item.cat,
+        emoji:       item.emoji,
+        price:       item.price,
+        size:        item.size,
+        veg:         true,
+        available:   true,
+        isBestSeller: false,
+        showOnApp:   true,
+        addedAt:     new Date().toISOString(),
+      });
+      done++;
+      document.getElementById('done-count').textContent = done;
+      log(`${item.emoji} ${item.name} — Rs.${item.price} (${item.size})`,'ok');
+    }
+    log(`Done! ${done} items added!`,'ok');
+    document.getElementById('done-banner').style.display = 'block';
+    btn.textContent = '✅ Done!';
+  } catch(e) {
+    log(`Error: ${e.message}`,'err');
+    btn.disabled = false;
+    btn.textContent = '🔄 Dobara Try Karo';
+  }
+};
+</script>
+</body>
+</html>
